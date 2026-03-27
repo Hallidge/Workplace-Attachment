@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Workplace Attachment Style</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f8fafc; }
+  .scale-btn { transition: all .15s ease; cursor: pointer; border: 2px solid #e5e7eb; }
+  .scale-btn:not(.selected):hover { transform: translateY(-2px); border-color: #f59e0b !important; background: #fef3c7 !important; }
+  .scale-btn:not(.selected):hover .num { color: #d97706 !important; }
+  .scale-btn:not(.selected):hover .lbl { color: #d97706 !important; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  .fade-in { animation: fadeIn .3s ease forwards; }
+  .bar-fill { transition: width 1.1s cubic-bezier(.4,0,.2,1); }
+</style>
+</head>
+<body>
+<div id="app" class="min-h-screen"></div>
+
+<script>
+// ===================================================
+//  SUPABASE — hardcoded credentials
+// ===================================================
+const SUPABASE_URL = 'https://uhnuwktwwvskitgbzicz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVobnV3a3R3d3Zza2l0Z2J6aWN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMjg5ODQsImV4cCI6MjA4OTkwNDk4NH0.9EZiWo07SjaMQphgjfV1DjuKlwVqR1Wzqj9BZKdE73M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===================================================
+//  20-ITEM INSTRUMENT
+//  dim: 'av' = avoidance  |  'ax' = anxiety
+//  rev: true = reverse-coded (score = 7 - rating)
+// ===================================================
+const STMTS = [
+  { id:'s1',  dim:'av', rev:false, text:"I prefer to sort out work challenges on my own rather than involving others." },
+  { id:'s2',  dim:'ax', rev:false, text:"I sometimes worry whether my colleagues truly value my contribution." },
+  { id:'s3',  dim:'av', rev:true,  text:"I find it easy to lean on colleagues when I need support." },
+  { id:'s4',  dim:'ax', rev:true,  text:"I feel confident that my team appreciates what I bring." },
+  { id:'s5',  dim:'av', rev:true,  text:"I'm comfortable asking for help when things get difficult." },
+  { id:'s6',  dim:'ax', rev:false, text:"I find myself seeking reassurance from others more than I'd like." },
+  { id:'s7',  dim:'av', rev:false, text:"I tend to keep my thoughts and concerns to myself at work." },
+  { id:'s8',  dim:'ax', rev:false, text:"I worry about how I'm perceived when I disagree with a colleague." },
+  { id:'s9',  dim:'av', rev:false, text:"I find it hard to rely on others to come through when I need them." },
+  { id:'s10', dim:'ax', rev:true,  text:"I feel secure in my working relationships, even when things are uncertain." },
+  { id:'s11', dim:'av', rev:false, text:"I prefer to handle pressure independently rather than bringing the team in." },
+  { id:'s12', dim:'ax', rev:false, text:"I sometimes dwell on whether I've upset or disappointed a colleague." },
+  { id:'s13', dim:'av', rev:true,  text:"I'm comfortable letting colleagues know when I'm struggling." },
+  { id:'s14', dim:'ax', rev:true,  text:"I can voice a difficult opinion without worrying too much about what others think." },
+  { id:'s15', dim:'av', rev:true,  text:"I find it easy to open up about work concerns with my team." },
+  { id:'s16', dim:'ax', rev:false, text:"I find it hard to concentrate when I sense tension in the team." },
+  { id:'s17', dim:'av', rev:false, text:"I tend to keep people at a distance until I know I can trust them." },
+  { id:'s18', dim:'ax', rev:false, text:"I occasionally wonder if I'm as respected as others in my team." },
+  { id:'s19', dim:'av', rev:false, text:"I tend to downplay difficulties at work rather than let colleagues see I'm finding something hard." },
+  { id:'s20', dim:'ax', rev:false, text:"When a colleague seems quieter than usual, I find myself wondering if I've done something wrong." }
+];
+
+const SCALE_LABELS = ['', 'Not like me', 'Rarely like me', 'Sometimes like me', 'Often like me', 'Mostly like me', 'That\'s me'];
+const SCALE_SHORT  = ['', 'Not me', 'Rarely', 'Sometimes', 'Often', 'Mostly', 'That\'s me'];
+
+// ===================================================
+//  PROFILES
+// ===================================================
+const PROFILES = {
+  Connected: {
+    label: 'Connected',
+    col:   '#16a34a',
+    bg:    '#f0fdf4',
+    border:'#bbf7d0',
+    em:    '🤝',
+    tagline: 'At ease with closeness and confident in your working relationships',
+    desc: [
+      "You tend to feel comfortable both leaning on others and being leaned on. In team settings, you bring a steadying presence — neither pulling away when things get hard, nor needing constant reassurance that everything is fine.",
+      "You're likely to handle conflict well, say what you mean, and get back on track after a rough patch with a colleague. That doesn't make you immune to stress or self-doubt — it means you have a solid internal anchor that helps you stay present and tuned in to those around you."
+    ],
+    strengthsPool: [
+      "Consistent and trustworthy — colleagues tend to know where they stand with you",
+      "Can disagree without withdrawing or making it personal",
+      "Often makes it easier for others to speak up, without necessarily realising it",
+      "Comfortable leaning on others and being leaned on — interdependence feels natural, not risky",
+      "Stays present and grounded even when things are unresolved or uncertain",
+      "Balances working alone and working together without much friction"
+    ],
+    growthVariants: [
+      "Your biggest opportunity is helping others access what feels natural to you. Noticing when teammates are struggling to speak up or connect — and actively making room for that — is where your natural strength becomes a real team asset.",
+      "The opportunity is making your natural steadiness more visible and deliberate. You hold a lot together quietly — naming that, and actively inviting others to draw on it, turns a personal strength into something the whole team benefits from."
+    ],
+    bestPool: [
+      "When there is mutual trust and expectations are clear",
+      "In roles that mix independent work with genuine collaboration",
+      "When psychological safety is named out loud, not just assumed",
+      "In teams where people are direct and say what they mean",
+      "When given meaningful work and the space to do it well"
+    ],
+    pressure: {
+      headlines: [
+        "Under pressure, you can sometimes end up carrying more of the team's stress than is yours to hold.",
+        "Under pressure, you reliably stay present — but at the cost of absorbing everyone else's tension before attending to your own."
+      ],
+      signs: [
+        "Taking on more than your share of the emotional load — absorbing the team's worry so others don't have to",
+        "Smoothing over conflict rather than naming it — keeping the peace at the cost of honesty",
+        "Underestimating how much you're actually affected, because you don't show it"
+      ],
+      watchFor: "Watch for the moment you stop raising your own concerns because you're too busy holding things together for everyone else. Your steadiness is a genuine strength — but it has a cost if no one is looking out for you."
+    },
+    withStyles: {
+      Alert: "Be clear when things are fine — your calm can look like indifference when they're worried. Check in before they ask. They often won't ask.",
+      Guarded: "Give them space to do it their way before jumping in. Ask rather than offer — 'would it help if...' lands better than unsolicited support. They'll trust you more for respecting the distance."
+    }
+  },
+  Alert: {
+    label: 'Alert',
+    col:   '#d97706',
+    bg:    '#fffbeb',
+    border:'#fde68a',
+    em:    '📡',
+    tagline: 'Highly tuned in to relationships — and sometimes on edge within them',
+    desc: [
+      "You bring a sharp radar to your work. You notice shifts in team mood, pick up on unspoken tension, and care a lot about how you're landing with colleagues and managers. That sensitivity is a real — and often underrated — strength.",
+      "At times, this same awareness can tip into overthinking — replaying a conversation, looking for extra reassurance, or worrying about where you stand when things feel unclear. These patterns tend to show up most under pressure or when communication in the team goes quiet or inconsistent."
+    ],
+    strengthsPool: [
+      "Picks up on team mood and underlying tension before others do",
+      "Motivated by real connection and genuinely collaborative work",
+      "Brings warmth and real care to working relationships",
+      "When the worry is in check, brings unusually sharp insight into what others are actually feeling",
+      "Willing to raise the things others avoid — the drive to connect usually wins out over the worry about how it will land",
+      "Often the first to notice when something is off — an early warning system for team health"
+    ],
+    growthVariants: [
+      "The growth edge is learning to reassure yourself — trusting your own read without needing others to confirm it. Asking directly rather than guessing tends to clear up a lot of worry quickly. Clarity is your friend.",
+      "The priority is breaking the loop between monitoring and seeking reassurance — each one feeds the other. The most useful habit is learning to ask yourself: 'Is this a fact, or am I filling in the gaps?' That single question is worth more than any amount of external validation."
+    ],
+    bestPool: [
+      "When expectations are clear and feedback is regular and specific",
+      "In teams where people say what they mean and communication is open",
+      "With managers who are consistent, approachable, and follow through",
+      "When your contribution is visible and acknowledged — you do your best work when you can see your impact",
+      "In roles with clear structure and defined responsibilities"
+    ],
+    pressure: {
+      headlines: [
+        "Under pressure, you can start to over-monitor — and the signals you pick up can add to the worry rather than settle it.",
+        "Under pressure, your radar goes into overdrive — and at that point the monitoring itself becomes the problem, not what you're monitoring for."
+      ],
+      signs: [
+        "Replaying conversations, looking for signs you've upset someone or said the wrong thing",
+        "Seeking reassurance more than usual — from your manager, peers, or whoever is available",
+        "Stepping into looking after others to avoid sitting with your own discomfort"
+      ],
+      watchFor: "Watch for the habit of reading threat into neutral signals — a slow reply, a short message, a change in someone's tone. Under pressure, your radar is turned up high. The most useful question: 'Is this a fact, or am I filling in the gaps?'"
+    },
+    withStyles: {
+      Connected: "You can trust them to stay present — they won't back away or punish you for raising something difficult. That means you can bring more of the harder stuff. Use it.",
+      Guarded: "Don't read their brevity or independence as coldness — they're not picking up the same signals you are. Ask for what you need plainly. They won't sense it, not because they don't care, but because they're wired differently."
+    }
+  },
+  Guarded: {
+    label: 'Guarded',
+    col:   '#2563eb',
+    bg:    '#eff6ff',
+    border:'#bfdbfe',
+    em:    '🧱',
+    tagline: 'Self-sufficient and independent — with some distance built in',
+    desc: [
+      "You place a high value on competence, independence, and handling things yourself. You're unlikely to ask for help unless you genuinely need it, and you may find prolonged emotional conversations or high-dependency team cultures draining.",
+      "That self-reliance is a real asset in many situations. The flip side is that colleagues may find you hard to read or difficult to reach — not because you don't care, but because closeness can feel more like exposure than support."
+    ],
+    strengthsPool: [
+      "Highly self-sufficient and steady under pressure",
+      "Not easily thrown by others' emotional states",
+      "Focused and disciplined when working independently",
+      "Brings cool-headed clarity to decisions — not swayed by emotional pressure or group consensus",
+      "Strong internal awareness of what's actually going on, even when you don't voice it",
+      "Brings calm and clear thinking to high-stress situations"
+    ],
+    growthVariants: [
+      "The growth edge is seeing that depending on others isn't a weakness — and that being reachable is often what builds the kind of trust that makes teams work well. Small moments of openness tend to pay back far more than they cost.",
+      "The priority is understanding what the distance costs — not just what it protects. The further you sit from others, the more they fill the gap with their own interpretation of you. One deliberate act of openness tends to shift that more than you'd expect."
+    ],
+    bestPool: [
+      "When given clear ownership and freedom to work in your own way",
+      "In roles where focused, independent work is genuinely valued",
+      "With colleagues who respect space and don't push for closeness before trust is earned",
+      "In environments where results matter more than visibility — where performance earns credibility",
+      "When given time to think things through before being asked to share or commit"
+    ],
+    pressure: {
+      headlines: [
+        "Under pressure, you can pull back further — becoming harder to read and less likely to signal that anything is wrong.",
+        "Under pressure, you reliably retreat into self-containment — and the more you do, the harder it becomes for anyone around you to offer support."
+      ],
+      signs: [
+        "Going quiet when support would actually help, leaving others to guess what's going on",
+        "Brushing off the emotional weight of a situation — in yourself and in others",
+        "Shifting into pure task-mode to avoid dealing with what's going on between people"
+      ],
+      watchFor: "Watch for the point where silence becomes a wall. Colleagues — especially those with an Alert tendency — will fill the gap with their own interpretation, and it's rarely generous. One sentence of acknowledgement goes further than you'd expect."
+    },
+    withStyles: {
+      Connected: "They can handle more openness than feels natural to give. A small disclosure — even just naming that something is difficult — tends to build trust quickly. You don't have to share everything; just enough to be reachable.",
+      Alert: "They need more check-ins and reassurance than feels necessary to you. A short, proactive message — 'all good from my end' — can head off a difficult conversation later. Low effort for you, high value for them."
+    }
+  }
+};
+
+// ===================================================
+//  STATE
+// ===================================================
+let VIEW            = 'home';
+let RATINGS         = {};
+let CURRENT_STMT    = 0;
+let PARTICIPANT_NAME = '';
+let ACTIVE_ENG      = null;
+let COMPUTED_PROFILE = null;
+let ADMIN_ENGS      = [];
+let ADMIN_SELECTED  = null;
+let ADMIN_RESPONSES = [];
+
+// ===================================================
+//  SCORING
+// ===================================================
+function computeScores(ratings) {
+  function dimScore(dim) {
+    const stmts = STMTS.filter(s => s.dim === dim);
+    const vals  = stmts.map(s => {
+      const r = ratings[s.id];
+      if (!r) return null;
+      return s.rev ? (7 - r) : r;
+    }).filter(v => v !== null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }
+  return { avoidance: dimScore('av'), anxiety: dimScore('ax') };
+}
+
+function classify(avoidance, anxiety) {
+  const MID = 3.5;
+  const avHigh = avoidance > MID;
+  const axHigh = anxiety   > MID;
+  if (!avHigh && !axHigh) return 'Connected';
+  if ( axHigh && !avHigh) return 'Alert';
+  if ( avHigh && !axHigh) return 'Guarded';
+  return avoidance >= anxiety ? 'Guarded' : 'Alert';
+}
+
+// ===================================================
+//  RENDER HELPER
+// ===================================================
+function render(html) { document.getElementById('app').innerHTML = html; }
+
+// ===================================================
+//  HOME VIEW
+// ===================================================
+function homeView() {
+  VIEW = 'home';
+  render(`
+    <div class="min-h-screen flex items-center justify-center p-4" style="background:linear-gradient(160deg,#fdf8f0 0%,#f8fafc 70%)">
+      <div class="rounded-2xl shadow-md p-8 max-w-md w-full fade-in" style="background:#fffdf9;border:1px solid #ede8df">
+        <div class="text-center mb-8">
+          <div class="text-5xl mb-4">🧭</div>
+          <h1 class="text-2xl font-bold mb-3" style="color:#292524">Workplace Attachment Style</h1>
+          <p class="text-sm leading-relaxed mb-3" style="color:#6b5e4e">
+            How we connect with colleagues — when we seek support, when we pull back, what makes us feel at ease or on edge — follows patterns most of us have never had a name for.
+          </p>
+          <p class="text-sm leading-relaxed mb-3" style="color:#8a7a6a">
+            This tool draws on attachment research, one of psychology's most replicated bodies of work, to help surface those patterns in a workplace context. There's no ideal result and no fixed label — just a clearer picture of how you naturally operate, and a foundation for the team to connect with more intention.
+          </p>
+          <p class="text-xs" style="color:#c4a97a">20 questions · around 5 minutes · your individual results are private</p>
+        </div>
+        <div class="text-center mb-6 pb-6 border-b" style="border-color:#ede8df">
+          <p class="text-xs font-semibold tracking-widest uppercase" style="color:#1e40af">Andrew Hall Coaching</p>
+          <p class="text-xs tracking-widest uppercase" style="color:#93c5fd;font-size:9px">© ${new Date().getFullYear()} The Coaching Doc Ltd.</p>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1.5" style="color:#6b5e4e">Your name <span class="font-normal" style="color:#c4a97a">(optional)</span></label>
+            <input id="inp-name" type="text" placeholder="e.g. Alex" autocomplete="off"
+              style="border-color:#ede8df;background:#fffdf9"
+              class="w-full rounded-xl px-4 py-3 text-sm border focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1.5" style="color:#6b5e4e">Team code <span style="color:#e87b5a">*</span></label>
+            <input id="inp-code" type="text" placeholder="Enter the code from your coach" autocomplete="off"
+              style="border-color:#ede8df;background:#fffdf9"
+              class="w-full rounded-xl px-4 py-3 text-sm border uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+          </div>
+          <button onclick="startSurvey()"
+            style="background:#d97706"
+            class="w-full hover:opacity-90 active:opacity-80 text-white font-semibold rounded-xl py-3 transition-opacity shadow-sm">
+            Begin →
+          </button>
+          <div class="text-center pt-2">
+            <button onclick="showAdmin()" class="text-xs transition-colors" style="color:#d1b896">
+              Coach / Admin access
+            </button>
+          </div>
+
+          <!-- Privacy notice -->
+          <div class="mt-4 rounded-xl p-4 text-left" style="background:#f8f6f2;border:1px solid #ede8df">
+            <p class="text-xs font-semibold mb-2" style="color:#78716c">Privacy — what happens to your data</p>
+            <ul class="space-y-1.5" style="color:#9ca3af;font-size:10px;line-height:1.5">
+              <li>· Your name is optional and used only to label your result on the team map.</li>
+              <li>· Your responses and style result are stored in a cloud database (Supabase, hosted on AWS).</li>
+              <li>· Your facilitator can see your style label and position on the team map. Individual question responses are not visible to them.</li>
+              <li>· Your data is not shared with or sold to any third party.</li>
+              <li>· This tool is hosted on standard cloud infrastructure. If your organisation has specific data compliance requirements, please speak to your facilitator before proceeding.</li>
+              <li>· To request deletion of your data, contact your facilitator.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function startSurvey() {
+  const nameEl = document.getElementById('inp-name');
+  const codeEl = document.getElementById('inp-code');
+  const code   = (codeEl.value || '').trim().toUpperCase();
+  if (!code) { codeEl.focus(); codeEl.classList.add('ring-2','ring-red-300'); return; }
+
+  render(`<div class="min-h-screen flex items-center justify-center"><p class="text-gray-400 text-sm">Checking team code…</p></div>`);
+
+  const { data, error } = await sb.from('att_engagements').select('*').eq('code', code).maybeSingle();
+  if (error || !data) {
+    homeView();
+    setTimeout(() => {
+      document.getElementById('inp-code').value = code;
+      alert('Team code not recognised. Please check with your coach.');
+    }, 100);
+    return;
+  }
+
+  PARTICIPANT_NAME = (nameEl ? nameEl.value.trim() : '') || 'Anonymous';
+  ACTIVE_ENG       = data;
+  RATINGS          = {};
+  CURRENT_STMT     = 0;
+  VIEW = 'survey';
+  surveyView();
+}
+
+// ===================================================
+//  SURVEY VIEW
+// ===================================================
+function surveyView() {
+  const stmt   = STMTS[CURRENT_STMT];
+  const total  = STMTS.length;
+  const pct    = Math.round((CURRENT_STMT / total) * 100);
+  const sel    = RATINGS[stmt.id];
+  const isLast = CURRENT_STMT === total - 1;
+
+  render(`
+    <div class="min-h-screen flex items-center justify-center p-4" style="background:linear-gradient(160deg,#fdf8f0 0%,#f8fafc 70%)">
+      <div class="rounded-2xl shadow-md p-8 max-w-lg w-full fade-in" style="background:#fffdf9;border:1px solid #ede8df">
+
+        <!-- Progress -->
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-medium" style="color:#b45309">${CURRENT_STMT + 1} <span style="color:#d1b896;font-weight:400">of ${total}</span></span>
+            <span class="text-xs" style="color:#d1b896">${pct}%</span>
+          </div>
+          <div class="w-full rounded-full h-1" style="background:#f0e8d8">
+            <div class="h-1 rounded-full transition-all duration-500" style="width:${pct}%;background:#d97706"></div>
+          </div>
+        </div>
+
+        <!-- Grounding line — subtle, not instructional -->
+        <p class="text-xs italic mb-6" style="color:#c4a97a">Reflect on your usual pattern — not a best day or worst day.</p>
+
+        <!-- Statement — no quotes, warmer weight -->
+        <div class="min-h-[84px] flex items-start mb-8">
+          <p class="text-lg leading-relaxed" style="color:#292524;font-weight:500">${stmt.text}</p>
+        </div>
+
+        <!-- Scale -->
+        <div class="grid grid-cols-6 gap-2 mb-7">
+          ${[1,2,3,4,5,6].map(v => `
+            <button onclick="rate(${v})"
+              class="scale-btn ${sel === v ? 'selected' : ''} rounded-xl py-3 flex flex-col items-center gap-1.5 w-full"
+              style="${sel === v
+                ? 'background:#d97706;border-color:#d97706;transform:translateY(-3px) scale(1.1);box-shadow:0 5px 16px rgba(217,119,6,0.45)'
+                : 'background:#fffdf9;border-color:#ede8df'}">
+              <span class="num font-bold" style="color:${sel === v ? '#fff' : '#c4b49a'};font-size:${sel === v ? '1.4rem' : '1.2rem'};line-height:1.2">${v}</span>
+              <span class="lbl" style="color:${sel === v ? '#fff' : '#c4b49a'};font-size:9px;white-space:nowrap;line-height:1;font-weight:${sel === v ? '700' : '400'}">${SCALE_SHORT[v]}</span>
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between items-center">
+          <button onclick="prevStmt()" class="text-sm transition-colors ${CURRENT_STMT === 0 ? 'invisible' : ''}" style="color:#c4a97a">
+            ← Back
+          </button>
+          <button onclick="nextStmt()" ${!sel ? 'disabled' : ''}
+            class="disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-semibold px-7 py-2.5 rounded-xl transition-colors shadow-sm"
+            style="background:#d97706">
+            ${isLast ? 'See my results →' : 'Next →'}
+          </button>
+        </div>
+
+        <p class="text-center mt-6 pt-4 border-t" style="border-color:#ede8df;font-size:9px;letter-spacing:.08em;color:#d1b896">ANDREW HALL COACHING · © ${new Date().getFullYear()} THE COACHING DOC LTD.</p>
+
+      </div>
+    </div>
+  `);
+}
+
+function rate(v) {
+  RATINGS[STMTS[CURRENT_STMT].id] = v;
+  if (CURRENT_STMT < STMTS.length - 1) {
+    CURRENT_STMT++;
+    surveyView();
+  } else {
+    surveyView(); // refresh to show selected on last
+  }
+}
+
+function prevStmt() {
+  if (CURRENT_STMT > 0) { CURRENT_STMT--; surveyView(); }
+}
+
+function nextStmt() {
+  if (!RATINGS[STMTS[CURRENT_STMT].id]) return;
+  if (CURRENT_STMT < STMTS.length - 1) { CURRENT_STMT++; surveyView(); }
+  else { computeAndShowProfile(); }
+}
+
+// ===================================================
+//  PROFILE VIEW
+// ===================================================
+function computeAndShowProfile() {
+  const { avoidance, anxiety } = computeScores(RATINGS);
+  const style = classify(avoidance, anxiety);
+  COMPUTED_PROFILE = { avoidance, anxiety, style };
+  profileView(avoidance, anxiety, style, false);
+}
+
+// ===================================================
+//  SCORE-BASED CONTENT SELECTORS
+// ===================================================
+function dominant(avoidance, anxiety, style) {
+  // Returns the score of the defining dimension for this style
+  if (style === 'Connected') return Math.max(Math.abs(avoidance - 3.5), Math.abs(anxiety - 3.5));
+  if (style === 'Alert')     return anxiety;
+  if (style === 'Guarded')   return avoidance;
+  return 4;
+}
+
+function getStrengths(style, avoidance, anxiety) {
+  const p = PROFILES[style];
+  const pool = p.strengthsPool;
+  const core = pool.slice(0, 3); // first 3 always shown
+  let extra;
+  if (style === 'Connected') {
+    extra = avoidance < 2.8 ? pool[3] : anxiety < 2.8 ? pool[4] : pool[5];
+  } else if (style === 'Alert') {
+    extra = anxiety > 4.5 ? pool[3] : avoidance < 2.8 ? pool[4] : pool[5];
+  } else { // Guarded
+    extra = (avoidance > 4.2 && anxiety < 3.5) ? pool[3] : (avoidance > 4.0 && anxiety >= 3.5) ? pool[4] : pool[5];
+  }
+  return [...core, extra];
+}
+
+function getGrowth(style, avoidance, anxiety) {
+  const score = dominant(avoidance, anxiety, style);
+  return PROFILES[style].growthVariants[score > 4.3 ? 1 : 0];
+}
+
+function getBest(style, avoidance, anxiety) {
+  const p = PROFILES[style];
+  const pool = p.bestPool;
+  const core = pool.slice(0, 2); // first 2 always shown
+  let extra;
+  if (style === 'Connected') {
+    extra = anxiety < 2.8 ? pool[3] : avoidance < 2.8 ? pool[2] : pool[4];
+  } else if (style === 'Alert') {
+    extra = anxiety > 4.5 ? pool[3] : avoidance > 3.5 ? pool[4] : pool[2];
+  } else { // Guarded
+    extra = anxiety < 3.0 ? pool[3] : avoidance > 4.5 ? pool[4] : pool[2];
+  }
+  return [...core, extra];
+}
+
+function getPressureHeadline(style, avoidance, anxiety) {
+  const score = dominant(avoidance, anxiety, style);
+  return PROFILES[style].pressure.headlines[score > 4.3 ? 1 : 0];
+}
+
+function personalNote(avoidance, anxiety, style) {
+  const MID = 3.5;
+  const avDist = Math.abs(avoidance - MID);
+  const axDist = Math.abs(anxiety   - MID);
+
+  function deg(d) {
+    if (d < 0.4) return 'a mild';
+    if (d < 1.0) return 'a moderate';
+    if (d < 1.8) return 'a strong';
+    return 'a very strong';
+  }
+
+  if (style === 'Connected') {
+    if (avDist < 0.4 && axDist < 0.4) {
+      return "Your scores sit close to the midpoint on both dimensions — you don't show a strong pull in either direction. That suggests a flexible, context-sensitive style that adapts well across different team environments, rather than a fixed pattern.";
+    }
+    if (avDist > axDist) {
+      return `You show ${deg(avDist)} pull toward closeness and lean on people relatively easily. Your relational security is particularly grounded in connection — you're at your best when there's genuine collaboration and openness in the team.`;
+    }
+    return `You show ${deg(axDist)} sense of security in your working relationships. You tend not to overthink how you're landing with others, which makes you a settled, reliable presence — especially when the team is under pressure.`;
+  }
+
+  if (style === 'Alert') {
+    if (avoidance < MID) {
+      return `Your relational sensitivity is ${deg(axDist)} present, and you're also comfortable seeking connection — you tend to reach out rather than pull back when things feel uncertain. The main thing to watch is the monitoring and over-reading of signals, not a reluctance to connect.`;
+    }
+    return `Your relational sensitivity is ${deg(axDist)} present, and you also show some pull toward working independently. Under pressure this can be an isolating mix — simultaneously watching for signs things are off, while finding it harder to ask for support directly.`;
+  }
+
+  if (style === 'Guarded') {
+    if (anxiety < MID) {
+      return `Your preference for independence is ${deg(avDist)} present, and you're generally settled in your working relationships. Your distance is about self-sufficiency, not worry — colleagues tend to experience you as contained and capable rather than closed off.`;
+    }
+    return `Your preference for independence is ${deg(avDist)} present, alongside some relational vigilance. This can be a particularly draining combination — reluctant to ask for support while quietly monitoring how things stand with others.`;
+  }
+}
+
+function profileView(avoidance, anxiety, style, saved) {
+  const p = PROFILES[style];
+  // Convert 1-6 → 0–100% for bar display
+  const avPct = Math.round(((avoidance - 1) / 5) * 100);
+  const axPct = Math.round(((anxiety   - 1) / 5) * 100);
+
+  render(`
+    <div class="min-h-screen bg-slate-50 py-10 px-4 fade-in">
+      <div class="max-w-xl mx-auto space-y-4 pb-12">
+
+        <!-- Style card -->
+        <div class="rounded-2xl p-8 text-center shadow-sm" style="background:${p.bg}; border: 2px solid ${p.border}">
+          <div class="text-5xl mb-3">${p.em}</div>
+          <div class="text-xs font-semibold uppercase tracking-widest mb-2" style="color:${p.col}">Your current tendency</div>
+          <h2 class="text-4xl font-bold mb-3" style="color:${p.col}">${p.label}</h2>
+          <p class="text-gray-600 text-sm leading-relaxed italic max-w-xs mx-auto">"${p.tagline}"</p>
+        </div>
+
+        <!-- Personal note -->
+        <div class="rounded-2xl p-5 shadow-sm" style="background:${p.bg};border:1px solid ${p.border}">
+          <h3 class="font-semibold text-sm mb-2" style="color:${p.col}">Your specific pattern</h3>
+          <p class="text-sm leading-relaxed" style="color:#57534e">${personalNote(avoidance, anxiety, style)}</p>
+        </div>
+
+        <!-- Two dimensions -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-2">Your two dimensions</h3>
+          <p class="text-xs italic text-gray-400 mb-5 leading-relaxed">Your style is shaped by two underlying patterns — how comfortable you are with closeness at work, and how much you monitor the security of your relationships. Neither is good or bad; together they explain your default way of showing up.</p>
+
+          <!-- Avoidance bar -->
+          <div class="mb-5">
+            <div class="flex justify-between text-xs text-gray-500 mb-1.5">
+              <span>← Leans on people</span>
+              <span>Goes it alone →</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-3 relative overflow-hidden">
+              <div class="h-3 rounded-full bar-fill" style="width:${avPct}%; background:#2563eb"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+              <span>Leans on people · 1.0</span>
+              <span class="font-semibold text-blue-600 text-xs">${avoidance.toFixed(2)}</span>
+              <span>Goes it alone · 6.0</span>
+            </div>
+            <div class="w-full relative mt-0.5">
+              <div class="absolute h-2 w-px bg-gray-300" style="left:50%; top:0"></div>
+            </div>
+          </div>
+
+          <!-- Vigilance bar -->
+          <div>
+            <div class="flex justify-between text-xs text-gray-500 mb-1.5">
+              <span>← Feels secure</span>
+              <span>Seeks reassurance →</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-3 relative overflow-hidden">
+              <div class="h-3 rounded-full bar-fill" style="width:${axPct}%; background:#d97706"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+              <span>Feels secure · 1.0</span>
+              <span class="font-semibold text-amber-600 text-xs">${anxiety.toFixed(2)}</span>
+              <span>Seeks reassurance · 6.0</span>
+            </div>
+          </div>
+
+          <p class="text-xs text-gray-400 mt-5 leading-relaxed border-t border-gray-50 pt-4">
+            The midpoint (3.5) separates low and high tendencies on each dimension. Both exist in everyone — what varies is the degree, and degrees can shift with context and over time.
+          </p>
+        </div>
+
+        <!-- Description -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-4">What this tends to look like</h3>
+          ${p.desc.map(d => `<p class="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">${d}</p>`).join('')}
+        </div>
+
+        <!-- Strengths -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-4">What you bring</h3>
+          <ul class="space-y-2.5">
+            ${getStrengths(style, avoidance, anxiety).map(s => `
+              <li class="flex gap-2.5 text-sm text-gray-600">
+                <span class="shrink-0 font-bold mt-0.5" style="color:${p.col}">✓</span>
+                <span>${s}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <!-- Growth edge -->
+        <div class="rounded-2xl p-6 shadow-sm" style="background:${p.bg}; border:1px solid ${p.border}">
+          <h3 class="font-semibold text-sm mb-3" style="color:${p.col}">Growth edge</h3>
+          <p class="text-sm text-gray-700 leading-relaxed">${getGrowth(style, avoidance, anxiety)}</p>
+        </div>
+
+        <!-- What brings out your best -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-4">What tends to bring out your best</h3>
+          <ul class="space-y-2.5">
+            ${getBest(style, avoidance, anxiety).map(b => `
+              <li class="flex gap-2.5 text-sm text-gray-600">
+                <span class="text-gray-300 shrink-0">→</span>
+                <span>${b}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <!-- Under pressure -->
+        <div class="rounded-2xl p-6 shadow-sm" style="background:#1c191708;border:1px solid #e7e5e4">
+          <h3 class="font-semibold text-sm mb-2" style="color:#292524">⚡ Under pressure</h3>
+          <p class="text-sm font-medium mb-3" style="color:#57534e">${getPressureHeadline(style, avoidance, anxiety)}</p>
+          <ul class="space-y-2 mb-4">
+            ${p.pressure.signs.map(s => `
+              <li class="flex gap-2.5 text-sm" style="color:#78716c">
+                <span class="shrink-0 mt-0.5" style="color:#d97706">▸</span>
+                <span>${s}</span>
+              </li>
+            `).join('')}
+          </ul>
+          <p class="text-xs leading-relaxed italic" style="color:#a8a29e;border-top:1px solid #e7e5e4;padding-top:12px">${p.pressure.watchFor}</p>
+        </div>
+
+        <!-- Working with other styles -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-1">Recognising the other styles</h3>
+          <p class="text-xs italic mb-4" style="color:#9ca3af">You may not know a colleague's style — but you can often read their patterns. Use this as a field guide: if someone's behaviour reminds you of a style below, here's what tends to help.</p>
+          ${Object.entries(p.withStyles).map(([s, tip]) => {
+            const other = PROFILES[s];
+            return `
+              <div class="mb-4 last:mb-0 p-3 rounded-xl" style="background:${other.bg};border:1px solid ${other.border}">
+                <div class="text-xs font-semibold mb-1.5" style="color:${other.col}">${other.em} If they seem ${s.toLowerCase()}</div>
+                <p class="text-sm leading-relaxed" style="color:#57534e">${tip}</p>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Save / Saved -->
+        ${!saved ? `
+          <div class="rounded-2xl p-6 shadow-sm text-center" style="background:#fffdf9;border:1px solid #ede8df">
+            <!-- Download first — prominent -->
+            <p class="text-sm font-medium mb-1" style="color:#292524">Want to keep your results?</p>
+            <p class="text-xs mb-4" style="color:#8a7a6a">Download your profile now — once you submit to the team you won't be able to come back to this page.</p>
+            <button onclick="downloadProfile(${avoidance.toFixed(4)}, ${anxiety.toFixed(4)}, '${style}')"
+              class="w-full font-semibold px-8 py-3 rounded-xl transition-colors mb-5"
+              style="background:#f5ede0;border:1.5px solid #d9c4a0;color:#7a5c2e">
+              📄 Download my profile (PDF)
+            </button>
+            <!-- Divider -->
+            <div class="flex items-center gap-3 mb-5">
+              <div class="flex-1 h-px" style="background:#ede8df"></div>
+              <span class="text-xs" style="color:#c4b49a">then when you're ready</span>
+              <div class="flex-1 h-px" style="background:#ede8df"></div>
+            </div>
+            <!-- Save to team -->
+            <p class="text-xs mb-4" style="color:#b09a84">Your individual scores stay private — only your style label (${style}) is counted in the team picture.</p>
+            <button onclick="saveResponse()" id="save-btn"
+              class="w-full text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm"
+              style="background:#d97706">
+              Add my result to the team →
+            </button>
+          </div>
+        ` : `
+          <div class="bg-green-50 border border-green-100 rounded-2xl p-6 text-center shadow-sm">
+            <div class="text-3xl mb-2">✅</div>
+            <p class="text-sm font-semibold text-green-700 mb-1">Your response has been saved.</p>
+            <p class="text-xs text-gray-500">Thank you${PARTICIPANT_NAME && PARTICIPANT_NAME !== 'Anonymous' ? ', ' + PARTICIPANT_NAME : ''}. Your results have been added to the team. You can close this tab.</p>
+          </div>
+        `}
+
+        <p class="text-center text-xs text-gray-300 pb-1">
+          This diagnostic reflects current tendencies — not fixed traits or clinical categories.
+        </p>
+        <p class="text-center pb-2" style="font-size:9px;letter-spacing:.08em;color:#d1b896">ANDREW HALL COACHING · © ${new Date().getFullYear()} THE COACHING DOC LTD.</p>
+      </div>
+    </div>
+  `);
+
+  // Animate bars after render
+  if (!saved) {
+    setTimeout(() => {
+      document.querySelectorAll('.bar-fill').forEach(b => { b.style.width = b.style.width; });
+    }, 50);
+  }
+}
+
+async function saveResponse() {
+  const btn = document.getElementById('save-btn');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+
+  const { avoidance, anxiety, style } = COMPUTED_PROFILE;
+  const { error } = await sb.from('att_responses').insert({
+    eng_id:      ACTIVE_ENG.id,
+    participant: PARTICIPANT_NAME,
+    anxiety:     Math.round(anxiety   * 100) / 100,
+    avoidance:   Math.round(avoidance * 100) / 100,
+    style
+  });
+
+  if (error) {
+    alert('Could not save. Please try again.\n' + error.message);
+    if (btn) { btn.textContent = 'Add my result to the team →'; btn.disabled = false; }
+    return;
+  }
+  profileView(avoidance, anxiety, style, true);
+}
+
+// ===================================================
+//  ADMIN
+// ===================================================
+async function showAdmin() {
+  const pw = prompt('Admin access code:');
+  if (!pw || pw.trim().toUpperCase() !== 'COACH2024') { if (pw !== null) alert('Incorrect access code.'); return; }
+  VIEW = 'admin';
+  render(`<div class="min-h-screen flex items-center justify-center"><p class="text-gray-400 text-sm">Loading…</p></div>`);
+  const { data } = await sb.from('att_engagements').select('*').order('created_at', { ascending: false });
+  ADMIN_ENGS = data || [];
+  adminHomeView();
+}
+
+function adminHomeView() {
+  render(`
+    <div class="min-h-screen bg-slate-50 p-6">
+      <div class="max-w-2xl mx-auto">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <h1 class="text-xl font-bold text-gray-800">🧭 Attachment Style — Admin</h1>
+            <p class="text-sm text-gray-400 mt-0.5">Manage team engagements</p>
+          </div>
+          <button onclick="homeView()" class="text-sm text-gray-400 hover:text-gray-600 transition-colors mt-1">← Exit</button>
+        </div>
+
+        <!-- Create engagement -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
+          <h2 class="font-semibold text-gray-700 text-sm mb-4">Create new engagement</h2>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="text-xs text-gray-500 mb-1 block">Engagement name</label>
+              <input id="new-name" type="text" placeholder="e.g. Leadership Team Q2"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 mb-1 block">Client / Organisation</label>
+              <input id="new-client" type="text" placeholder="e.g. Acme Ltd"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="text-xs text-gray-500 mb-1 block">Team code (participants enter this)</label>
+              <input id="new-code" type="text" placeholder="e.g. ACME24" style="text-transform:uppercase"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-amber-400"/>
+            </div>
+            <div class="flex items-end">
+              <button onclick="createEngagement()"
+                class="bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engagement list -->
+        <h2 class="font-semibold text-gray-500 text-xs uppercase tracking-wider mb-3">Engagements</h2>
+        <div class="space-y-3">
+          ${ADMIN_ENGS.length === 0
+            ? `<div class="bg-white rounded-xl p-8 text-center shadow-sm"><p class="text-sm text-gray-400">No engagements yet. Create one above.</p></div>`
+            : ADMIN_ENGS.map(e => `
+              <div class="bg-white rounded-xl p-4 shadow-sm flex items-center justify-between gap-4">
+                <div>
+                  <div class="font-semibold text-gray-800 text-sm">${e.name}</div>
+                  <div class="text-xs text-gray-400 mt-0.5">
+                    ${e.client ? e.client + ' · ' : ''}Code: <span class="font-mono font-bold text-amber-600">${e.code}</span>
+                  </div>
+                </div>
+                <button onclick="viewEngagement('${e.id}')"
+                  class="shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+                  View team →
+                </button>
+              </div>
+            `).join('')}
+        </div>
+
+      </div>
+    </div>
+  `);
+}
+
+async function createEngagement() {
+  const name   = (document.getElementById('new-name').value   || '').trim();
+  const client = (document.getElementById('new-client').value || '').trim();
+  const code   = (document.getElementById('new-code').value   || '').trim().toUpperCase();
+  if (!name || !code) { alert('Please enter a name and team code.'); return; }
+
+  const { data, error } = await sb.from('att_engagements').insert({ name, client, code }).select().single();
+  if (error) { alert('Error: ' + error.message); return; }
+  ADMIN_ENGS.unshift(data);
+  adminHomeView();
+}
+
+async function viewEngagement(id) {
+  const eng = ADMIN_ENGS.find(e => e.id === id);
+  ADMIN_SELECTED = eng;
+  render(`<div class="min-h-screen flex items-center justify-center"><p class="text-gray-400 text-sm">Loading team data…</p></div>`);
+  const { data } = await sb.from('att_responses').select('*').eq('eng_id', id).order('created_at', { ascending: true });
+  ADMIN_RESPONSES = data || [];
+  teamAggregateView();
+}
+
+// ===================================================
+//  TEAM AGGREGATE VIEW
+// ===================================================
+function teamAggregateView() {
+  const resps = ADMIN_RESPONSES;
+  const eng   = ADMIN_SELECTED;
+  const n     = resps.length;
+
+  if (n === 0) {
+    render(`
+      <div class="min-h-screen bg-slate-50 p-6">
+        <div class="max-w-2xl mx-auto">
+          <button onclick="adminHomeView()" class="text-sm text-gray-400 hover:text-gray-600 mb-6 block">← Back</button>
+          <h2 class="text-xl font-bold text-gray-800 mb-2">${eng.name}</h2>
+          <div class="bg-white rounded-2xl p-10 text-center shadow-sm">
+            <p class="text-gray-500 text-sm mb-2">No responses yet.</p>
+            <p class="text-gray-400 text-xs">Share the team code <span class="font-mono font-bold text-amber-600">${eng.code}</span> with participants.</p>
+          </div>
+        </div>
+      </div>
+    `);
+    return;
+  }
+
+  // Composition
+  const counts = { Connected: 0, Alert: 0, Guarded: 0 };
+  resps.forEach(r => { if (counts[r.style] !== undefined) counts[r.style]++; });
+
+  // Team averages
+  const avMean = resps.reduce((a, r) => a + r.avoidance, 0) / n;
+  const axMean = resps.reduce((a, r) => a + r.anxiety,   0) / n;
+
+  // Build scatter SVG
+  const scatterSVG = buildScatterSVG(resps, avMean, axMean);
+
+  // Narrative sections
+  const dynamics         = generateDynamics(counts, n, avMean, axMean);
+  const leaderImps       = generateLeaderImplications(counts, n);
+  const facilitationQs   = generateFacilitationQs(counts, n);
+  const watchOuts        = generateWatchOuts(counts, n);
+  const teamAgreements   = generateTeamAgreements(counts, n);
+
+  render(`
+    <div class="min-h-screen bg-slate-50 p-6 pb-16 fade-in">
+      <div class="max-w-2xl mx-auto space-y-5">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+          <div>
+            <button onclick="adminHomeView()" class="text-xs text-gray-400 hover:text-gray-600 mb-1 block">← All engagements</button>
+            <h2 class="text-xl font-bold text-gray-800">${eng.name}</h2>
+            <p class="text-sm text-gray-400">${eng.client ? eng.client + ' · ' : ''}${n} response${n !== 1 ? 's' : ''} · Code: <span class="font-mono font-bold text-amber-600">${eng.code}</span></p>
+          </div>
+          <button onclick="viewEngagement('${eng.id}')" class="text-xs text-gray-400 hover:text-gray-600 mt-1 flex items-center gap-1">🔄 Refresh</button>
+        </div>
+
+        <!-- Composition -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-5">Team composition <span class="text-gray-400 font-normal">(n=${n})</span></h3>
+          ${Object.entries(counts).map(([style, count]) => {
+            const pct = n > 0 ? Math.round((count / n) * 100) : 0;
+            const p   = PROFILES[style];
+            return `
+              <div class="mb-4 last:mb-0">
+                <div class="flex justify-between items-center mb-1.5">
+                  <span class="text-sm font-medium flex items-center gap-2">
+                    <span>${p.em}</span>
+                    <span style="color:${p.col}">${style}</span>
+                  </span>
+                  <span class="text-sm text-gray-500">${count} &nbsp;·&nbsp; ${pct}%</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                  <div class="h-2.5 rounded-full transition-all" style="width:${pct}%;background:${p.col}"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Scatter map -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-1">Team scatter map</h3>
+          <p class="text-xs text-gray-400 mb-4">Each dot is one team member. The dashed circle marks the team centre of gravity.</p>
+          ${scatterSVG}
+        </div>
+
+        <!-- Team dynamics -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-4">Team dynamics</h3>
+          ${dynamics.map(d => `<p class="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">${d}</p>`).join('')}
+        </div>
+
+        <!-- Leader / coach implications -->
+        <div class="rounded-2xl p-6 shadow-sm" style="background:#fffbeb; border:1px solid #fde68a">
+          <h3 class="font-semibold text-sm mb-4" style="color:#92400e">Leader &amp; coach implications</h3>
+          <ul class="space-y-3">
+            ${leaderImps.map(l => `
+              <li class="flex gap-2.5 text-sm" style="color:#78350f">
+                <span class="shrink-0 mt-0.5">→</span>
+                <span>${l}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <!-- Watch-outs -->
+        <div class="rounded-2xl p-6 shadow-sm" style="background:#1c191708;border:1px solid #e7e5e4">
+          <h3 class="font-semibold text-sm mb-1" style="color:#292524">⚠️ Watch-out signals for this team</h3>
+          <p class="text-xs mb-4" style="color:#a8a29e">Early warning signs specific to this composition — worth checking in on if you notice them.</p>
+          <ul class="space-y-3">
+            ${watchOuts.map(w => `
+              <li class="flex gap-2.5 text-sm" style="color:#57534e">
+                <span class="shrink-0 mt-0.5" style="color:#dc2626">▸</span>
+                <span class="leading-relaxed">${w}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <!-- Team agreements -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-1">Suggested team agreements</h3>
+          <p class="text-xs text-gray-400 mb-4">Starting points for a team conversation — not prescriptions. Adapt them to the language that fits this group.</p>
+          <ul class="space-y-3">
+            ${teamAgreements.map((a, i) => `
+              <li class="flex gap-3 text-sm text-gray-600">
+                <span class="shrink-0 font-semibold mt-0.5" style="color:#d97706">${i + 1}.</span>
+                <span class="leading-relaxed">${a}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <!-- Facilitation questions -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-gray-700 text-sm mb-1">Facilitation questions</h3>
+          <p class="text-xs text-gray-400 mb-5">For use in a team session. Not for individual attribution.</p>
+          <ol class="space-y-4">
+            ${facilitationQs.map((q, i) => `
+              <li class="flex gap-3 text-sm text-gray-600">
+                <span class="shrink-0 font-semibold text-gray-300 w-5 text-right">${i + 1}.</span>
+                <span class="leading-relaxed">${q}</span>
+              </li>
+            `).join('')}
+          </ol>
+        </div>
+
+      </div>
+    </div>
+  `);
+}
+
+// ===================================================
+//  SCATTER SVG
+// ===================================================
+function buildScatterSVG(resps, avMean, axMean) {
+  const W = 320, H = 260;
+  const pL = 42, pR = 16, pT = 18, pB = 32;
+  const plotW = W - pL - pR;
+  const plotH = H - pT - pB;
+
+  const toX = av => pL + ((av - 1) / 5) * plotW;
+  const toY = ax => pT + plotH - ((ax - 1) / 5) * plotH;
+
+  const midX = toX(3.5);
+  const midY = toY(3.5);
+
+  const styleCol = { Connected: '#16a34a', Alert: '#d97706', Guarded: '#2563eb' };
+
+  // Deterministic small jitter (use index as seed)
+  const dots = resps.map((r, i) => {
+    const jx = ((i * 37 + 7) % 11) - 5;
+    const jy = ((i * 53 + 13) % 11) - 5;
+    return {
+      x:   Math.min(W - pR - 6, Math.max(pL + 6, toX(r.avoidance) + jx)),
+      y:   Math.min(H - pB - 6, Math.max(pT + 6, toY(r.anxiety)   + jy)),
+      col: styleCol[r.style] || '#6b7280'
+    };
+  });
+
+  // SVG only — legend rendered as HTML below
+  const svg = `
+    <svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;width:100%">
+      <!-- Quadrant backgrounds -->
+      <!-- top-left:  low avoidance, high anxiety = Alert   -->
+      <rect x="${pL}" y="${pT}" width="${midX - pL}" height="${midY - pT}" fill="#fffbeb" opacity="0.7"/>
+      <!-- top-right: high avoidance, high anxiety = Mixed  -->
+      <rect x="${midX}" y="${pT}" width="${W - pR - midX}" height="${midY - pT}" fill="#fef2f2" opacity="0.4"/>
+      <!-- bottom-left:  low avoidance, low anxiety = Connected -->
+      <rect x="${pL}" y="${midY}" width="${midX - pL}" height="${H - pB - midY}" fill="#f0fdf4" opacity="0.7"/>
+      <!-- bottom-right: high avoidance, low anxiety = Guarded  -->
+      <rect x="${midX}" y="${midY}" width="${W - pR - midX}" height="${H - pB - midY}" fill="#eff6ff" opacity="0.7"/>
+
+      <!-- Border -->
+      <rect x="${pL}" y="${pT}" width="${plotW}" height="${plotH}" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+
+      <!-- Midpoint lines -->
+      <line x1="${midX}" y1="${pT}" x2="${midX}" y2="${H - pB}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="${pL}" y1="${midY}" x2="${W - pR}" y2="${midY}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Quadrant labels -->
+      <text x="${pL + 5}" y="${pT + 13}" font-size="9" fill="#d97706" font-weight="700" font-family="system-ui">Alert</text>
+      <text x="${midX + 5}" y="${pT + 13}" font-size="9" fill="#9ca3af" font-weight="600" font-family="system-ui">Mixed</text>
+      <text x="${pL + 5}" y="${H - pB - 7}" font-size="9" fill="#16a34a" font-weight="700" font-family="system-ui">Connected</text>
+      <text x="${midX + 5}" y="${H - pB - 7}" font-size="9" fill="#2563eb" font-weight="700" font-family="system-ui">Guarded</text>
+
+      <!-- Y-axis label -->
+      <text x="11" y="${pT + plotH / 2}" font-size="8" fill="#9ca3af" text-anchor="middle" font-family="system-ui"
+        transform="rotate(-90, 11, ${pT + plotH / 2})">← Feels secure · Seeks reassurance →</text>
+
+      <!-- X-axis label -->
+      <text x="${pL + plotW / 2}" y="${H - 6}" font-size="8" fill="#9ca3af" text-anchor="middle" font-family="system-ui">
+        ← Leans on people · Goes it alone →
+      </text>
+
+      <!-- Team mean crosshair -->
+      <circle cx="${toX(avMean).toFixed(1)}" cy="${toY(axMean).toFixed(1)}" r="11"
+        fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+
+      <!-- Dots -->
+      ${dots.map(d => `
+        <circle cx="${d.x.toFixed(1)}" cy="${d.y.toFixed(1)}" r="5.5"
+          fill="${d.col}" opacity="0.85" stroke="white" stroke-width="1.5"/>
+      `).join('')}
+    </svg>
+  `;
+
+  // HTML legend below SVG
+  const legend = `
+    <div style="display:flex;justify-content:center;gap:20px;margin-top:8px">
+      ${Object.entries(styleCol).map(([s,c]) => `
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:${c}">
+          <svg width="10" height="10"><circle cx="5" cy="5" r="5" fill="${c}"/></svg>${s}
+        </span>
+      `).join('')}
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280">
+        <svg width="22" height="10"><circle cx="11" cy="5" r="9" fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="3,2"/></svg>Team avg
+      </span>
+    </div>
+  `;
+
+  return svg + legend;
+}
+
+// ===================================================
+//  NARRATIVE GENERATORS
+// ===================================================
+function generateDynamics(counts, n, avMean, axMean) {
+  const sorted  = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const [majStyle, majCount] = sorted[0];
+  const majPct  = Math.round((majCount / n) * 100);
+  const diverse = sorted.filter(([, v]) => v > 0).length > 1;
+  const lines   = [];
+
+  // Opening: composition characterisation
+  if (majPct >= 65) {
+    lines.push(`This team has a pronounced <strong>${majStyle}</strong> lean — ${majCount} of ${n} people (${majPct}%) show this as their current tendency. That kind of consistency shapes culture in visible ways, and it is worth understanding what that pattern tends to amplify or suppress.`);
+  } else if (majPct >= 45) {
+    lines.push(`The <strong>${majStyle}</strong> style is the plurality here (${majCount} of ${n}, ${majPct}%), but this is genuinely a mixed team. Different relational styles are represented in meaningful numbers, which creates both richness and the potential for friction if the differences go unnamed.`);
+  } else {
+    lines.push(`This is a highly diverse team in attachment terms — ${sorted.filter(([,v])=>v>0).map(([s,c])=>`${c} ${s}`).join(', ')}. No single style dominates. That diversity is a potential asset: when it is understood and navigated well, it tends to produce more creative and resilient teams.`);
+  }
+
+  // Style-specific dynamics
+  if (majStyle === 'Connected' && majPct >= 55) {
+    lines.push(`A predominantly Connected team tends to navigate disagreement without too much drama and rebuild trust after setbacks with relative ease. Watch for one subtle risk: psychological safety can occasionally slide into conflict-avoidance, where difficult truths are not spoken because things feel good enough.`);
+  }
+  if (counts.Alert > 0 && counts.Alert >= counts.Guarded) {
+    lines.push(`The Alert presence in this team means relational attunement is high — people are tracking the room and care deeply about how they are coming across. This creates genuine warmth. It also means ambiguity, inconsistency, or silence from leadership tends to land disproportionately hard. Clarity is protective for this team.`);
+  }
+  if (counts.Guarded > 0 && counts.Guarded >= counts.Alert) {
+    lines.push(`The Guarded presence in this team means self-sufficiency is a cultural norm. People are likely capable and professional. The risk is that collaboration stays functional without becoming truly generative — and that struggles go underground until they become serious. Psychological safety needs to be actively built, not assumed.`);
+  }
+
+  // Alert/Guarded friction
+  if (counts.Alert > 0 && counts.Guarded > 0) {
+    lines.push(`Where Alert and Guarded individuals work closely together, a quiet friction can accumulate. Alert-leaning people may read Guarded colleagues as cold or disengaged; Guarded-leaning people may experience Alert colleagues as needy or emotionally unpredictable. Neither reading is accurate — but both feel real. Naming the dynamic is usually the first step to working through it.`);
+  }
+
+  // Centre of gravity
+  const avLbl = avMean.toFixed(1);
+  const axLbl = axMean.toFixed(1);
+  if (avMean < 3.5 && axMean < 3.5) {
+    lines.push(`The team's overall centre of gravity sits in the Connected quadrant (avoidance: ${avLbl}, anxiety: ${axLbl}), suggesting a reasonable baseline of relational trust. Individual variation around that average still matters — especially for those whose scores sit further from centre.`);
+  } else if (axMean > avMean) {
+    lines.push(`The team's average anxiety score (${axLbl}) exceeds its avoidance score (${avLbl}), suggesting a collective vigilance around relationships. This team is likely to respond well to regular communication, explicit acknowledgement, and a visible, consistent presence from leadership.`);
+  } else {
+    lines.push(`The team's average avoidance score (${avLbl}) exceeds its anxiety score (${axLbl}), pointing to a cultural norm of independence and self-containment. Collaboration tends to need explicit structure in this environment — it will not simply happen by virtue of good intentions.`);
+  }
+
+  return lines;
+}
+
+function generateLeaderImplications(counts, n) {
+  const imps = [];
+  imps.push("Be explicit about norms for communication and collaboration. Don't assume shared understanding of what 'working well together' looks like.");
+  if (counts.Alert > 0) {
+    imps.push("Alert-leaning team members read silence as disapproval. Regular, specific, positive feedback matters more than you might expect — and more than a single annual review.");
+  }
+  if (counts.Guarded > 0) {
+    imps.push("Guarded-leaning team members experience autonomy as a signal of trust. Overdoing check-ins, seeking emotional disclosure, or requiring constant visibility tends to backfire.");
+  }
+  if (counts.Connected > 0) {
+    imps.push("Connected team members can absorb relational friction that others struggle with. Avoid over-relying on them as the team's informal emotional stabilisers — that role quietly erodes even resilient people.");
+  }
+  if (counts.Alert > 0 && counts.Guarded > 0) {
+    imps.push("Facilitate at least one explicit conversation about different working and communication styles. The Alert/Guarded dynamic often resolves quickly once it is named in a safe, structured context.");
+  }
+  imps.push("These are current tendencies, not fixed types. Your role is to create conditions where every style can operate at its best — and where those patterns can shift over time as trust grows.");
+  return imps;
+}
+
+function generateFacilitationQs(counts, n) {
+  const qs = [
+    "What do you need from your colleagues to feel genuinely supported — without feeling either smothered or abandoned?",
+    "When is it hardest for you to ask for help at work? What tends to get in the way?",
+    "How do you signal to your team that you're struggling? Is that signal actually visible to the people around you?",
+    "What does psychological safety mean to you in practice, in this team, not in the abstract?",
+    "How do you tend to behave when you feel uncertain about where you stand with a colleague or your manager?",
+    "What would make it easier to be open about setbacks or self-doubt in this team?",
+    "When is this team at its most generative? What relational conditions seem to make that possible — and how do we recreate them?"
+  ];
+  return qs;
+}
+
+// ===================================================
+//  WATCH-OUTS GENERATOR
+// ===================================================
+function generateWatchOuts(counts, n) {
+  const watchOuts = [];
+  if (counts.Alert > 0 && counts.Guarded > 0) {
+    watchOuts.push("Alert and Guarded members reading each other wrong — Alert colleagues interpreting withdrawal as rejection; Guarded colleagues experiencing attentiveness as pressure. This gap widens silently and quickly.");
+  }
+  if (counts.Alert > 1) {
+    watchOuts.push("Collective anxiety amplifying under uncertainty. When several Alert-leaning people are in the same team, unspoken worry can circulate and escalate without anyone naming it. One person's anxiety becomes everyone's.");
+  }
+  if (counts.Guarded > 1) {
+    watchOuts.push("Problems staying underground. In Guarded-heavy teams, struggles tend not to surface until they're serious. The absence of visible tension is not the same as the absence of tension.");
+  }
+  if (counts.Connected >= Math.ceil(n * 0.5)) {
+    watchOuts.push("Conflict-avoidance masquerading as psychological safety. Connected-heavy teams can develop a norm of keeping things smooth that makes genuinely difficult conversations harder to have, not easier.");
+  }
+  if (counts.Alert > 0) {
+    watchOuts.push("Leadership silence being read as displeasure. For Alert-leaning team members, a period without explicit positive signals from leadership will tend to be interpreted negatively. Absence of feedback is not neutral.");
+  }
+  if (counts.Guarded > 0) {
+    watchOuts.push("Guarded team members disengaging quietly when micromanaged or over-included in collaborative work. The signal is not always obvious — look for a drop in initiative or a shift to minimal communication.");
+  }
+  if (watchOuts.length === 0) {
+    watchOuts.push("With a small or uniform team, the main watch-out is blind spots — similar styles tend to reinforce each other's patterns without realising it. Bring in an external perspective periodically.");
+  }
+  return watchOuts;
+}
+
+// ===================================================
+//  TEAM AGREEMENTS GENERATOR
+// ===================================================
+function generateTeamAgreements(counts, n) {
+  const agreements = [];
+  // Universal
+  agreements.push("We name our relational patterns when they're getting in the way — not after the fact, and not in blame.");
+  // Alert-relevant
+  if (counts.Alert > 0) {
+    agreements.push("In difficult conversations, we name the relationship before we raise the issue. 'I'm bringing this because I want us to work well together' comes first.");
+  }
+  // Guarded-relevant
+  if (counts.Guarded > 0) {
+    agreements.push("We build in explicit ask moments. No one has to guess when someone needs something — we create space to say it directly.");
+  }
+  // Mixed Alert/Guarded
+  if (counts.Alert > 0 && counts.Guarded > 0) {
+    agreements.push("We don't interpret style differences as intent. Someone going quiet is not being difficult. Someone asking lots of questions is not being needy. We check before we conclude.");
+  }
+  // General collaboration
+  agreements.push("We give feedback as close to the moment as possible — not stored up, not diluted, and never weaponised in a group setting.");
+  // Connected-heavy — nudge toward honesty
+  if (counts.Connected >= Math.ceil(n * 0.5)) {
+    agreements.push("We commit to naming the difficult thing even when the atmosphere is comfortable. A good team is one that can have hard conversations, not one that avoids needing to.");
+  }
+  return agreements;
+}
+
+// ===================================================
+//  DOWNLOAD PROFILE PDF
+// ===================================================
+function downloadProfile(avoidance, anxiety, style) {
+  const p   = PROFILES[style];
+  const avPct = Math.round(((avoidance - 1) / 5) * 100);
+  const axPct = Math.round(((anxiety   - 1) / 5) * 100);
+  const name  = PARTICIPANT_NAME && PARTICIPANT_NAME !== 'Anonymous' ? PARTICIPANT_NAME : '';
+  const date  = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+  <title>Attachment Style Profile — ${name || 'My Profile'}</title>
+  <style>
+    @page { size: A4; margin: 20mm 18mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2937; background: white; font-size: 12px; }
+    .header { background: ${p.bg}; border-left: 5px solid ${p.col}; padding: 24px 28px; margin-bottom: 20px; border-radius: 6px; }
+    .style-em { font-size: 36px; }
+    .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: ${p.col}; margin-bottom: 4px; }
+    .style-name { font-size: 32px; font-weight: 800; color: ${p.col}; }
+    .tagline { font-size: 12px; color: #6b7280; font-style: italic; margin-top: 6px; }
+    .date { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+    .section { margin-bottom: 18px; }
+    .section-title { font-size: 11px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; border-bottom: 1px solid #f3f4f6; padding-bottom: 4px; }
+    .bar-row { margin-bottom: 10px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; margin-bottom: 3px; }
+    .bar-track { height: 8px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 8px; border-radius: 4px; }
+    .bar-score { font-size: 10px; font-weight: 600; text-align: right; margin-top: 2px; }
+    p { line-height: 1.65; color: #4b5563; margin-bottom: 10px; }
+    ul { padding-left: 0; list-style: none; }
+    li { display: flex; gap: 8px; margin-bottom: 6px; color: #4b5563; }
+    li::before { content: '→'; color: ${p.col}; flex-shrink: 0; }
+    .growth-box { background: ${p.bg}; border-left: 3px solid ${p.col}; padding: 12px 14px; border-radius: 4px; }
+    .growth-box .section-title { color: ${p.col}; border-color: ${p.col}22; }
+    .footer { font-size: 9px; color: #d1d5db; text-align: center; margin-top: 24px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  </style></head><body>
+
+  <div class="header">
+    <div class="style-em">${p.em}</div>
+    <div class="label" style="margin-top:8px">Workplace Attachment Style — Current Tendency</div>
+    <div class="style-name">${style}</div>
+    <div class="tagline">"${p.tagline}"</div>
+    <div class="date">${name ? name + ' · ' : ''}${date}</div>
+  </div>
+
+  <div class="section" style="background:${p.bg};border-left:3px solid ${p.col};padding:12px 14px;border-radius:4px">
+    <div class="section-title" style="color:${p.col};border-color:${p.col}22">Your specific pattern</div>
+    <p style="color:#374151;margin:0">${personalNote(avoidance, anxiety, style)}</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">The three styles at a glance</div>
+    <p style="font-size:10px;color:#9ca3af;font-style:italic;margin-bottom:10px">Attachment research describes three broad patterns in how people relate to others at work. Most people sit closer to one than the others — your profile is highlighted below.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      ${Object.entries(PROFILES).map(([s, sp]) => `
+        <div style="padding:10px 12px;border-radius:6px;border:${s === style ? '2px solid ' + sp.col : '1px solid #e5e7eb'};background:${s === style ? sp.bg : '#fafafa'}">
+          <div style="font-size:14px;margin-bottom:4px">${sp.em}</div>
+          <div style="font-size:11px;font-weight:${s === style ? '800' : '600'};color:${s === style ? sp.col : '#6b7280'};margin-bottom:4px">${s}${s === style ? ' ← you' : ''}</div>
+          <div style="font-size:9px;color:${s === style ? '#374151' : '#9ca3af'};line-height:1.4">${
+            s === 'Connected' ? 'Comfortable with closeness and confident in relationships. Neither pulls away nor needs constant reassurance.' :
+            s === 'Alert' ? 'Highly tuned in to relationships and team mood — but can tip into worry or over-monitoring when things feel unclear.' :
+            'Self-sufficient and independent. Values autonomy, keeps some distance, and finds closeness harder to show.'
+          }</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Your two dimensions</div>
+    <p style="font-size:10px;color:#9ca3af;font-style:italic;margin-bottom:10px">Your style is shaped by two underlying patterns — how comfortable you are with closeness at work, and how much you monitor the security of your relationships. Neither is good or bad; together they explain your default way of showing up.</p>
+    <div class="bar-row">
+      <div class="bar-label"><span>← Leans on people</span><span>Goes it alone →</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${avPct}%;background:#2563eb"></div></div>
+      <div class="bar-score" style="color:#2563eb">${avoidance.toFixed(2)} / 6.0 &nbsp;· leans on people ←→ goes it alone</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label"><span>← Feels secure</span><span>Seeks reassurance →</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${axPct}%;background:#d97706"></div></div>
+      <div class="bar-score" style="color:#d97706">${anxiety.toFixed(2)} / 6.0 &nbsp;· feels secure ←→ seeks reassurance</div>
+    </div>
+    <p style="font-size:10px;color:#9ca3af;margin-top:6px">The midpoint (3.5) separates low and high tendencies on each dimension. Both exist in everyone — what varies is the degree, and degrees can shift with context and over time.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">What this tends to look like</div>
+    ${p.desc.map(d => `<p>${d}</p>`).join('')}
+  </div>
+
+  <div class="two-col">
+    <div class="section">
+      <div class="section-title">What you bring</div>
+      <ul>${getStrengths(style, avoidance, anxiety).map(s => `<li>${s}</li>`).join('')}</ul>
+    </div>
+    <div class="section">
+      <div class="section-title">What tends to bring out your best</div>
+      <ul>${getBest(style, avoidance, anxiety).map(b => `<li>${b}</li>`).join('')}</ul>
+    </div>
+  </div>
+
+  <div class="growth-box" style="page-break-inside:avoid">
+    <div class="section-title">Growth edge</div>
+    <p style="margin-bottom:0">${getGrowth(style, avoidance, anxiety)}</p>
+  </div>
+
+  <div class="section" style="background:#f9f7f4;border-left:3px solid #d97706;padding:12px 14px;border-radius:4px;margin-top:18px;page-break-before:always;padding-top:20px">
+    <div class="section-title" style="color:#92400e;border-color:#fde68a">⚡ Under pressure</div>
+    <p style="font-weight:600;color:#374151;margin-bottom:8px">${getPressureHeadline(style, avoidance, anxiety)}</p>
+    <ul>${p.pressure.signs.map(s => `<li style="color:#6b7280">${s}</li>`).join('')}</ul>
+    <p style="font-size:10px;color:#9ca3af;font-style:italic;margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb">${p.pressure.watchFor}</p>
+  </div>
+
+  <div class="section" style="margin-top:18px;page-break-inside:avoid">
+    <div class="section-title">Recognising the other styles</div>
+    <p style="font-size:10px;color:#9ca3af;font-style:italic;margin-bottom:12px">You may not know a colleague's style — but you can often read their patterns. Use this as a field guide: if someone's behaviour reminds you of a style below, here's what tends to help.</p>
+    ${Object.entries(p.withStyles).map(([s, tip]) => {
+      const other = PROFILES[s];
+      return `<div style="margin-bottom:10px;padding:10px 12px;border-radius:4px;border-left:3px solid ${other.col};background:${other.bg}">
+        <div style="font-size:10px;font-weight:700;color:${other.col};margin-bottom:4px">${other.em} If they seem ${s.toLowerCase()}</div>
+        <p style="color:#4b5563;margin:0">${tip}</p>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <div class="footer">Workplace Attachment Style Diagnostic · Andrew Hall Coaching · © ${new Date().getFullYear()} The Coaching Doc Ltd. · ${date}</div>
+
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => w.print();
+}
+
+// ===================================================
+//  BOOT
+// ===================================================
+function boot() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('admin') === '1') { showAdmin(); return; }
+  homeView();
+}
+
+window.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
