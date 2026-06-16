@@ -83,8 +83,8 @@ const PROFILES = {
       "Balances working alone and working together without much friction"
     ],
     growthVariants: [
-      "Your biggest opportunity is helping others access what feels natural to you. Noticing when teammates are struggling to speak up or connect — and actively making room for that — is where your natural strength becomes a real team asset.",
-      "The opportunity is making your natural steadiness more visible and deliberate. You hold a lot together quietly — naming that, and actively inviting others to draw on it, turns a personal strength into something the whole team benefits from."
+      "Your biggest opportunity is helping others access what feels natural to you. Noticing when teammates are struggling to speak up or connect — and actively making room for that — is where your natural strength becomes a real team asset. Worth knowing: being the steady, dependable one for others doesn't make them more dependent on you over time — research consistently finds the opposite, that people supported by a reliable presence tend to become more self-sufficient, not less.",
+      "The opportunity is making your natural steadiness more visible and deliberate. You hold a lot together quietly — naming that, and actively inviting others to draw on it, turns a personal strength into something the whole team benefits from. It's a low-risk move too: offering a steady, reliable presence to colleagues tends to build their independence and confidence, not erode it."
     ],
     bestPool: [
       "When there is mutual trust and expectations are clear",
@@ -174,11 +174,11 @@ const PROFILES = {
       "Focused and disciplined when working independently",
       "Brings cool-headed clarity to decisions — not swayed by emotional pressure or group consensus",
       "Strong internal awareness of what's actually going on, even when you don't voice it",
-      "Brings calm and clear thinking to high-stress situations"
+      "In a genuine crisis or fast-moving problem, you're often the one who acts decisively and first — research on how people respond under real threat backs this up as a distinct, real advantage, not just a personality quirk"
     ],
     growthVariants: [
-      "The growth edge is seeing that depending on others isn't a weakness — and that being reachable is often what builds the kind of trust that makes teams work well. Small moments of openness tend to pay back far more than they cost.",
-      "The priority is understanding what the distance costs — not just what it protects. The further you sit from others, the more they fill the gap with their own interpretation of you. One deliberate act of openness tends to shift that more than you'd expect."
+      "The growth edge is seeing that depending on others isn't a weakness — and that being reachable is often what builds the kind of trust that makes teams work well. There's a well-evidenced finding in this research called the 'dependency paradox': accepting support from others tends to make people more independent and capable of exploring on their own, not less. The instinct that leaning on people will cost you autonomy generally runs backwards.",
+      "The priority is understanding what the distance costs — not just what it protects. The further you sit from others, the more they fill the gap with their own interpretation of you. One deliberate act of openness tends to shift that more than you'd expect — and the research on this is fairly consistent: a felt sense of support tends to free people up to act more independently, not less."
     ],
     bestPool: [
       "When given clear ownership and freedom to work in your own way",
@@ -1114,6 +1114,7 @@ function generateDynamics(counts, n, avMean, axMean) {
   // Alert/Guarded friction
   if (counts.Alert > 0 && counts.Guarded > 0) {
     lines.push(`Where Alert and Guarded individuals work closely together, a quiet friction can accumulate. Alert-leaning people may read Guarded colleagues as cold or disengaged; Guarded-leaning people may experience Alert colleagues as needy or emotionally unpredictable. Neither reading is accurate — but both feel real. Naming the dynamic is usually the first step to working through it.`);
+    lines.push(`Worth holding alongside that: this kind of mixed-style team is not automatically a problem. Research on attachment diversity in teams has found that, where team cohesion is genuinely strong, this same mix of styles is associated with <em>better</em> performance and team functioning than more uniform teams — not just more friction to manage. The differences themselves are not the risk; the question is whether the team has built enough cohesion to make use of them.`);
   }
 
   // Centre of gravity
@@ -1133,18 +1134,20 @@ function generateDynamics(counts, n, avMean, axMean) {
 function generateLeaderImplications(counts, n) {
   const imps = [];
   imps.push("Be explicit about norms for communication and collaboration. Don't assume shared understanding of what 'working well together' looks like.");
+  imps.push("As a leader, you function as an attachment figure for this team whether you intend to or not. The research on this is consistent: being trusted as a secure base rests on two things in combination — being seen as <em>caring</em> (responsive, available, on their side) and being seen as <em>competent</em> (capable of handling what the role actually demands). Warmth without credibility and credibility without warmth both leave people less secure, not more.");
   if (counts.Alert > 0) {
-    imps.push("Alert-leaning team members read silence as disapproval. Regular, specific, positive feedback matters more than you might expect — and more than a single annual review.");
+    imps.push("Alert-leaning team members read silence as disapproval. Regular, specific, positive feedback matters more than you might expect — and more than a single annual review. There's also a more specific finding worth knowing: anxious-leaning people tend to under-invest effort in building the relationship with you, precisely because they expect it won't go well — which then becomes self-fulfilling. A direct, low-stakes invitation to engage (rather than waiting for them to initiate) tends to break that loop faster than reassurance alone.");
   }
   if (counts.Guarded > 0) {
-    imps.push("Guarded-leaning team members experience autonomy as a signal of trust. Overdoing check-ins, seeking emotional disclosure, or requiring constant visibility tends to backfire.");
+    imps.push("Guarded-leaning team members experience autonomy as a signal of trust. Overdoing check-ins, seeking emotional disclosure, or requiring constant visibility tends to backfire. One useful nuance from the research: avoidant-leaning people's relationship quality with a manager doesn't move much with effort on their part — it's linked more directly to how the relationship is structured. In practice, this usually means you need to make the first move on connection rather than waiting for reciprocation, and it's worth considering whether some of their work can be structured to need less relationship-intensive collaboration.");
   }
   if (counts.Connected > 0) {
     imps.push("Connected team members can absorb relational friction that others struggle with. Avoid over-relying on them as the team's informal emotional stabilisers — that role quietly erodes even resilient people.");
   }
   if (counts.Alert > 0 && counts.Guarded > 0) {
-    imps.push("Facilitate at least one explicit conversation about different working and communication styles. The Alert/Guarded dynamic often resolves quickly once it is named in a safe, structured context.");
+    imps.push("Facilitate at least one explicit conversation about different working and communication styles. The Alert/Guarded dynamic often resolves quickly once it is named in a safe, structured context. It's also worth reframing the goal: this isn't only about reducing friction. Teams with real diversity in relational style — provided the team has built genuine cohesion — have been found to outperform more uniform teams, not just tolerate the differences. The work is building the cohesion, not eliminating the diversity.");
   }
+  imps.push("Building a secure base for this team is not the same as making it dependent on you. The evidence runs the other way: people who feel genuinely supported tend to take more initiative and explore further, not less — sometimes called the 'dependency paradox'. The aim is a team that feels backed, not one that defers to you by default.");
   imps.push("These are current tendencies, not fixed types. Your role is to create conditions where every style can operate at its best — and where those patterns can shift over time as trust grows.");
   return imps;
 }
@@ -1209,6 +1212,7 @@ function generateTeamAgreements(counts, n) {
   // Mixed Alert/Guarded
   if (counts.Alert > 0 && counts.Guarded > 0) {
     agreements.push("We don't interpret style differences as intent. Someone going quiet is not being difficult. Someone asking lots of questions is not being needy. We check before we conclude.");
+    agreements.push("We treat the different ways people connect and protect themselves as useful information, not a fault to fix — and we invest deliberately in the things that build real cohesion (follow-through, shared wins, trust over time), because that's what determines whether this mix becomes a strength or stays a source of friction.");
   }
   // General collaboration
   agreements.push("We give feedback as close to the moment as possible — not stored up, not diluted, and never weaponised in a group setting.");
