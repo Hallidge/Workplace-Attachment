@@ -410,11 +410,12 @@ function surveyView() {
 
 function rate(v) {
   RATINGS[STMTS[CURRENT_STMT].id] = v;
+  surveyView(); // re-render immediately so the chosen option visibly bolds/highlights
   if (CURRENT_STMT < STMTS.length - 1) {
-    CURRENT_STMT++;
-    surveyView();
-  } else {
-    surveyView(); // refresh to show selected on last
+    setTimeout(() => {
+      CURRENT_STMT++;
+      surveyView();
+    }, 380); // brief pause so the selection registers before advancing
   }
 }
 
@@ -449,6 +450,15 @@ function dominant(avoidance, anxiety, style) {
   return 4;
 }
 
+// Threshold for picking the "stronger pull" variant of growth/pressure text.
+// Alert/Guarded scores run 1–6, so 4.3 sits near the top of that range.
+// Connected's dominant score is a *distance from the midpoint* and can only
+// ever run 0–2.5, so it needs its own, proportionally-equivalent cutoff —
+// otherwise the "stronger" variant is mathematically unreachable.
+function variantThreshold(style) {
+  return style === 'Connected' ? 1.5 : 4.3;
+}
+
 function getStrengths(style, avoidance, anxiety) {
   const p = PROFILES[style];
   const pool = p.strengthsPool;
@@ -466,7 +476,7 @@ function getStrengths(style, avoidance, anxiety) {
 
 function getGrowth(style, avoidance, anxiety) {
   const score = dominant(avoidance, anxiety, style);
-  return PROFILES[style].growthVariants[score > 4.3 ? 1 : 0];
+  return PROFILES[style].growthVariants[score > variantThreshold(style) ? 1 : 0];
 }
 
 function getBest(style, avoidance, anxiety) {
@@ -486,7 +496,7 @@ function getBest(style, avoidance, anxiety) {
 
 function getPressureHeadline(style, avoidance, anxiety) {
   const score = dominant(avoidance, anxiety, style);
-  return PROFILES[style].pressure.headlines[score > 4.3 ? 1 : 0];
+  return PROFILES[style].pressure.headlines[score > variantThreshold(style) ? 1 : 0];
 }
 
 function personalNote(avoidance, anxiety, style) {
