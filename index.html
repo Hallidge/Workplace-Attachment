@@ -1478,6 +1478,12 @@ function teamMapPublicView() {
   const watchOuts      = capFive(generateWatchOuts(counts, n));
   const teamAgreements = capFive(generateTeamAgreements(counts, n));
 
+  // Dominant style for the top-of-report headline
+  const sortedStyles = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const [majStyle, majCount] = sortedStyles[0];
+  const majPct = Math.round((majCount / n) * 100);
+  const majP   = PROFILES[majStyle];
+
   render(`
     <div class="min-h-screen bg-slate-50 p-6 pb-16 fade-in">
       <div class="max-w-2xl mx-auto space-y-5">
@@ -1486,6 +1492,15 @@ function teamMapPublicView() {
         <div>
           <h2 class="text-xl font-bold text-gray-800">${eng.name} — Team Map</h2>
           <p class="text-sm text-gray-400">${eng.client ? eng.client + ' · ' : ''}${n} response${n !== 1 ? 's' : ''}</p>
+          <p class="text-xs italic text-gray-400 mt-2">Use this to set how you lead the team as a whole — not to guess who's who.</p>
+        </div>
+
+        <!-- Team attachment preference headline -->
+        <div class="rounded-2xl p-5 text-center shadow-sm" style="background:${majP.bg};border:1px solid ${majP.border}">
+          <div class="text-3xl mb-1">${majP.em}</div>
+          <div class="text-xs font-semibold uppercase tracking-widest mb-1" style="color:${majP.col}">Team attachment preference</div>
+          <div class="text-2xl font-bold" style="color:${majP.col}">${majStyle}</div>
+          <div class="text-xs text-gray-400 mt-1">${majCount} of ${n} (${majPct}%) lean this way${sortedStyles.filter(([,v])=>v>0).length>1 ? ' — see the breakdown below for the full mix' : ''}</div>
         </div>
 
         <!-- Download -->
@@ -1598,16 +1613,28 @@ function downloadTeamMap() {
   const teamAgreements = capFive(generateTeamAgreements(counts, n));
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  // Dominant style for the top-of-report headline
+  const sortedStyles = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const [majStyle, majCount] = sortedStyles[0];
+  const majPct = Math.round((majCount / n) * 100);
+  const majP   = PROFILES[majStyle];
+
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
   <title>Team Map — ${eng.name}</title>
   <style>
     @page { size: A4; margin: 20mm 18mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2937; background: white; font-size: 12px; }
-    .header { background: #fffbeb; border-left: 5px solid #d97706; padding: 24px 28px; margin-bottom: 20px; border-radius: 6px; }
+    .header { background: #fffbeb; border-left: 5px solid #d97706; padding: 24px 28px; margin-bottom: 8px; border-radius: 6px; }
     .eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #d97706; margin-bottom: 4px; }
     .title { font-size: 26px; font-weight: 800; color: #292524; }
     .meta { font-size: 11px; color: #9ca3af; margin-top: 6px; }
+    .framing { font-size: 10px; color: #9ca3af; font-style: italic; margin-bottom: 16px; }
+    .headline { text-align: center; padding: 16px; border-radius: 6px; margin-bottom: 20px; }
+    .headline .em { font-size: 28px; margin-bottom: 4px; }
+    .headline .eyebrow2 { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 2px; }
+    .headline .style-name { font-size: 20px; font-weight: 800; }
+    .headline .sub { font-size: 10px; color: #9ca3af; margin-top: 4px; }
     .section { margin-bottom: 18px; page-break-inside: avoid; }
     .section-title { font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; border-bottom: 1px solid #f3f4f6; padding-bottom: 4px; }
     p { line-height: 1.6; color: #4b5563; margin-bottom: 8px; }
@@ -1628,6 +1655,14 @@ function downloadTeamMap() {
     <div class="eyebrow">Team Map</div>
     <div class="title">${eng.name}</div>
     <div class="meta">${eng.client ? eng.client + ' · ' : ''}${n} response${n !== 1 ? 's' : ''} · ${date}</div>
+  </div>
+  <p class="framing">Use this to set how you lead the team as a whole — not to guess who's who.</p>
+
+  <div class="headline" style="background:${majP.bg};border:1px solid ${majP.border}">
+    <div class="em">${majP.em}</div>
+    <div class="eyebrow2" style="color:${majP.col}">Team attachment preference</div>
+    <div class="style-name" style="color:${majP.col}">${majStyle}</div>
+    <div class="sub">${majCount} of ${n} (${majPct}%) lean this way${sortedStyles.filter(([,v])=>v>0).length>1 ? ' — see the breakdown below for the full mix' : ''}</div>
   </div>
 
   <div class="section">
