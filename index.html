@@ -1161,29 +1161,44 @@ function generateDynamics(counts, n, avMean, axMean) {
 }
 
 // Shorter, punchier version of generateDynamics() for the team-facing
-// download — two tight paragraphs instead of the full facilitator narrative.
+// download — three tight paragraphs (opening read, the key dynamic to
+// watch, and the team's relational centre of gravity) instead of the
+// full facilitator narrative's up-to-six.
 function generateDynamicsShort(counts, n, avMean, axMean) {
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   const [majStyle, majCount] = sorted[0];
   const majPct = Math.round((majCount / n) * 100);
   const lines = [];
 
+  // Opening: composition characterisation
   if (majPct >= 65) {
-    lines.push(`This team has a pronounced <strong>${majStyle}</strong> lean — ${majCount} of ${n} people (${majPct}%) show this as their current tendency.`);
+    lines.push(`This team has a pronounced <strong>${majStyle}</strong> lean — ${majCount} of ${n} people (${majPct}%) show this as their current tendency. That kind of consistency shapes culture in visible ways, and it's worth understanding what it tends to amplify or suppress.`);
   } else if (majPct >= 45) {
-    lines.push(`The <strong>${majStyle}</strong> style is the plurality here (${majCount} of ${n}, ${majPct}%), but this is genuinely a mixed team.`);
+    lines.push(`The <strong>${majStyle}</strong> style is the plurality here (${majCount} of ${n}, ${majPct}%), but this is genuinely a mixed team. Different relational styles are represented in meaningful numbers, which creates both richness and the potential for friction if the differences go unnamed.`);
   } else {
-    lines.push(`This is a highly diverse team in attachment terms — ${sorted.filter(([, v]) => v > 0).map(([s, c]) => `${c} ${s}`).join(', ')}. No single style dominates.`);
+    lines.push(`This is a highly diverse team in attachment terms — ${sorted.filter(([, v]) => v > 0).map(([s, c]) => `${c} ${s}`).join(', ')}. No single style dominates, which tends to be an asset when the team has built enough cohesion to make use of it.`);
   }
 
+  // Key dynamic to watch
   if (counts.Alert > 0 && counts.Guarded > 0) {
-    lines.push(`With both Alert and Guarded styles present, a quiet friction can build — Alert colleagues may read withdrawal as rejection, Guarded colleagues may experience attentiveness as pressure. Naming the dynamic, rather than assuming intent, is usually the fastest way through it.`);
+    lines.push(`With both Alert and Guarded styles present, a quiet friction can build — Alert colleagues may read withdrawal as rejection, Guarded colleagues may experience attentiveness as pressure. Neither reading is accurate, but both feel real, and naming the dynamic (rather than assuming intent) is usually the fastest way through it. Worth holding alongside that: where cohesion is genuinely strong, this kind of mix has been linked to <em>better</em> team performance than more uniform teams — not just more friction to manage.`);
   } else if (counts.Alert > 0 && counts.Alert >= counts.Guarded) {
-    lines.push(`The Alert presence means relational attunement is high — but ambiguity or silence from leadership tends to land hard. Clarity is protective for this team.`);
+    lines.push(`The Alert presence means relational attunement is high — people are tracking the room and care how they're coming across, which creates real warmth. The flip side is that ambiguity or silence from leadership tends to land disproportionately hard. Clarity is protective for this team.`);
   } else if (counts.Guarded > 0) {
-    lines.push(`The Guarded presence means self-sufficiency is a cultural norm — collaboration stays functional, but struggles can go underground until they're serious.`);
+    lines.push(`The Guarded presence means self-sufficiency is a cultural norm — people are likely capable and professional. The risk is that collaboration stays functional without becoming truly generative, and that struggles go underground until they're serious. Psychological safety needs to be actively built here, not assumed.`);
   } else {
-    lines.push(`A predominantly Connected team navigates disagreement and rebuilds trust with relative ease — the main watch-out is conflict-avoidance dressed up as harmony.`);
+    lines.push(`A predominantly Connected team navigates disagreement and rebuilds trust with relative ease. The one subtle risk worth watching: psychological safety can occasionally slide into conflict-avoidance, where difficult truths go unspoken because things already feel good enough.`);
+  }
+
+  // Centre of gravity
+  const avLbl = avMean.toFixed(1);
+  const axLbl = axMean.toFixed(1);
+  if (avMean < 3.5 && axMean < 3.5) {
+    lines.push(`The team's overall centre of gravity sits in the Connected quadrant (avoidance: ${avLbl}, anxiety: ${axLbl}), suggesting a reasonable baseline of relational trust — though individual variation around that average still matters.`);
+  } else if (axMean > avMean) {
+    lines.push(`The team's average anxiety score (${axLbl}) exceeds its avoidance score (${avLbl}), suggesting a collective vigilance around relationships. This team is likely to respond well to regular communication and a visible, consistent presence from leadership.`);
+  } else {
+    lines.push(`The team's average avoidance score (${avLbl}) exceeds its anxiety score (${axLbl}), pointing to a cultural norm of independence and self-containment. Collaboration tends to need explicit structure here — it won't simply happen by virtue of good intentions.`);
   }
 
   return lines;
